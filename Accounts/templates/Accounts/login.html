@@ -1,0 +1,56 @@
+{% extends "Home/base_Home.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Home/CSS/auth.css' %}">
+<style>
+body { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1521587760476-6c12a4b040da?w=1920') center/cover fixed; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% block favicon %}
+<link rel="icon" href="{% static 'Home/favicon_login.svg' %}" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{% static 'Home/favicon_login.svg' %}">
+{% endblock %}
+
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-card-inner">
+            <div class="logo">📚</div>
+            <h1>Page de Connexion</h1>
+            <p class="subtitle">Accédez à votre espace personnel</p>
+
+            <!-- Les messages flash sont masqués sur la page de connexion par demande. -->
+
+            <form method="post" action="{% url 'accounts:login' %}" class="auth-form">
+                {% csrf_token %}
+                {% if request.GET.next %}
+                    <input type="hidden" name="next" value="{{ request.GET.next }}">
+                {% endif %}
+
+                <div class="form-group">
+                    <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <span class="error">{{ form.email.errors }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                    {{ form.password }}
+                    {% if form.password.errors %}
+                        <span class="error">{{ form.password.errors }}</span>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="btn btn-primary">Se connecter</button>
+
+                <!-- lien d'inscription retiré conformément à la demande -->
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

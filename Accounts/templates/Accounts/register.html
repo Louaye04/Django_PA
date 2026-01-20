@@ -1,0 +1,72 @@
+{% extends "Home/base_Home.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Home/CSS/auth.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-card-inner">
+            <div class="logo">📚</div>
+            <h1>Page d'Inscription</h1>
+            <p class="subtitle">Créez votre compte pour accéder à la bibliothèque</p>
+
+            <form method="post" action="{% url 'register' %}" class="auth-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+                {{ form.first_name }}
+                {% if form.first_name.errors %}
+                    <span class="error">{{ form.first_name.errors }}</span>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+                {{ form.last_name }}
+                {% if form.last_name.errors %}
+                    <span class="error">{{ form.last_name.errors }}</span>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <span class="error">{{ form.email.errors }}</span>
+                {% endif %}
+            </div>
+
+            <!-- phone field removed -->
+
+            <div class="form-group">
+                <label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                {{ form.password }}
+                {% if form.password.errors %}
+                    <span class="error">{{ form.password.errors }}</span>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.role.id_for_label }}">{{ form.role.label }}</label>
+                {{ form.role }}
+                {% if form.role.errors %}
+                    <span class="error">{{ form.role.errors }}</span>
+                {% endif %}
+            </div>
+
+            <!-- role removed: users cannot choose admin on signup -->
+
+                <button type="submit" class="btn btn-primary">S'inscrire</button>
+
+                <p class="form-footer">
+                    Vous avez déjà un compte ? <a href="{% url 'login' %}">Se connecter</a>
+                </p>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

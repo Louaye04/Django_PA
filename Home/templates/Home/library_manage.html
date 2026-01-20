@@ -1,0 +1,1095 @@
+{% extends "Home/base_Home.html" %}
+{% load static %}
+
+{% block extra_css %}
+<!-- Bootstrap CSS for modal/form styling (SRI removed to avoid blocking in local env) -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'Home/library.css' %}">
+<style>
+.file-input-hidden{display:none}
+.btn-change-img{display:inline-block;margin-top:10px}
+.cover-preview-large{width:160px;height:220px;object-fit:cover;border-radius:6px;box-shadow:0 8px 20px rgba(0,0,0,0.5)}
+.cover-placeholder{width:160px;height:220px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.15);color:#efe8e0;border-radius:6px}
+.edit-cover-block{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.cover-filename{font-size:0.9rem;color:#efe8e0;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+#editBookModal .modal-title{font-weight:700}
+#editBookModal .modal-content{background:linear-gradient(180deg,#3b302b,#2f241d)}
+#editBookModal .form-label{color:#efe8e0}
+#editBookModal .form-control{background:#2f241d;border:1px solid rgba(255,255,255,0.03);color:#efe8e0}
+#editBookModal .btn-change-img{background:#6c4f3d;border-color:#6c4f3d}
+#editBookModal .btn{border-radius:8px}
+</style>
+<style>
+#addBookModal .modal-dialog{ max-width:980px; }
+#editBookModal .modal-dialog, #confirmModal .modal-dialog{ max-width:760px; }
+#addBookModal .modal-content, #editBookModal .modal-content, #confirmModal .modal-content{ background:linear-gradient(180deg,#3b302b,#2f241d); color:#efe8e0; border-radius:12px; padding:0; box-shadow:0 30px 80px rgba(0,0,0,0.6); }
+#addBookModal .modal-body, #editBookModal .modal-body, #confirmModal .modal-body{ padding:1.25rem; }
+#addBookModal .modal-header, #editBookModal .modal-header{ padding:1rem 1.25rem; border-bottom:1px solid rgba(255,255,255,0.04); }
+#addBookModal .modal-footer, #editBookModal .modal-footer{ padding:1rem; border-top:0; display:flex; justify-content:center; gap:.75rem; }
+
+# Center and size edit modal for readability
+# Keep consistent with confirm/add modal width
+# (override older 900px rules to 760px)
+#editBookModal .modal-dialog{max-width:900px;margin:1.75rem auto}
+#editBookModal .modal-content{padding:1rem;border-radius:10px}
+#editBookModal .modal-body{max-height:72vh;overflow:auto;padding:1rem}
+#editBookModal .modal-footer{padding:0.75rem}
+.modal-backdrop.show{opacity:0.6}
+</style>
+<style>
+/* Confirm delete modal styling to match mockup */
+#confirmModal .modal-dialog{max-width:760px}
+#confirmModal .modal-content{background:linear-gradient(180deg,#3b302b,#2f241d);border-radius:10px;padding:0}
+#confirmModal .modal-header{border-bottom:1px solid rgba(255,255,255,0.04);padding:1rem 1.25rem}
+#confirmModal .modal-title{font-size:1.5rem;font-weight:700;color:#efe8e0}
+#confirmModal .confirm-cover{width:120px;height:170px;object-fit:cover;border-radius:6px;box-shadow:0 10px 30px rgba(0,0,0,0.6)}
+#confirmModal .confirm-heading{color:#efe8e0;margin-bottom:0.5rem}
+#confirmModal .lead{color:#f6eede;font-size:1.05rem}
+#confirmModal .modal-body{padding:1.25rem}
+#confirmModal .modal-footer{padding:1rem;border-top:0}
+#confirmModal .btn-outline-secondary{background:rgba(0,0,0,0.25);border-color:rgba(255,255,255,0.04);color:#efe8e0}
+#confirmModal .btn-danger{background:linear-gradient(180deg,#c0422f,#9e2a1f);border-color:#7b2016;color:#fff}
+#confirmModal .btn-lg{padding:0.6rem 1.4rem;border-radius:8px;font-weight:600}
+#confirmModal .lead strong{color:#fff}
+</style>
+{% endblock %}
+
+{% block favicon %}
+<link rel="icon" href="{% static 'Home/favicon_catalogue.svg' %}" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{% static 'Home/favicon_catalogue.svg' %}">
+{% endblock %}
+
+{% block content %}
+<div class="library-app">
+  <div class="lib-shell">
+    <aside class="left-nav">
+      <div class="brand"><img src="{% static 'Home/library_logo.svg' %}" alt="Library" class="brand-logo"><span class="brand-title">Library</span></div>
+      <nav>
+        <ul>
+          <li><a href="#">Emprunts</a></li>
+          <li class="active"><a href="#">Catalogue</a></li>
+          <li><a href="#">Commandes</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <main class="main-panel">
+      <header class="panel-header">
+        <div class="topbar">
+          <div class="top-search">
+            <input type="text" placeholder="Rechercher..." value="{{ q }}" form="filterForm" name="q">
+          </div>
+          <div class="top-actions">
+            <div class="pending-pill"><img src="{% static 'Home/icon-requests.svg' %}" alt="requests" class="mini-icon"> {{ pending_count|default:0 }} &nbsp;demandes en attente</div>
+            <!-- Notifications and messages removed for a cleaner librarian UI -->
+            <div class="profile">
+              <img src="{% static 'Home/default_avatar.svg' %}" alt="avatar" class="avatar">
+              <div class="profile-name">{{ request.user.get_full_name }}</div>
+              <form method="post" action="{% url 'accounts:logout' %}" style="display:inline; margin-left:10px;">
+                {% csrf_token %}
+                <button type="submit" class="btn logout-btn" title="Se déconnecter">Se déconnecter</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-row">
+            <div class="panel-left">
+            <h2>Gestion des livres</h2>
+            <div class="tabs">
+              <button class="tab active orange">Tous</button>
+              {% for code,label in genres %}
+                <button class="tab">{{ label }}</button>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="panel-right">
+            <div class="search-box">
+              <form id="filterForm" method="get">
+                <select name="genre" id="genreInput" onchange="this.form.submit()">
+                  <option value="">Genre: Tout</option>
+                  {% for code,label in genres %}
+                    <option value="{{ code }}" {% if genre == code %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <!-- bouton 'Appliquer' supprimé pour une interface plus épurée; le select soumet automatiquement -->
+              </form>
+            </div>
+            <!-- Bouton '+ Ajouter un livre' supprimé du header par demande utilisateur -->
+          </div>
+        </div>
+      </header>
+
+      <section class="content-area">
+        <div class="books-table">
+          <table>
+        <!-- Delete confirmation handling: intercept delete forms, load server fragment, fallback to original form submit if needed -->
+        <script>
+        document.addEventListener('DOMContentLoaded', function(){
+          function showConfirmModal(){
+            var modalEl = document.getElementById('confirmModal');
+            if(window.bootstrap && bootstrap.Modal){
+              try{ new bootstrap.Modal(modalEl).show(); return; }catch(e){ console.warn('bootstrap modal show failed', e); }
+            }
+            // fallback manual show
+            modalEl.classList.add('fallback-show');
+            modalEl.removeAttribute('aria-hidden');
+            var backdrop = document.querySelector('.modal-backdrop.fallback') || document.createElement('div');
+            backdrop.className = 'modal-backdrop fallback';
+            backdrop.style.zIndex = '1050';
+            if(!document.body.contains(backdrop)) document.body.appendChild(backdrop);
+            document.body.style.overflow = 'hidden';
+            // add dismiss handlers
+            modalEl.querySelectorAll('[data-bs-dismiss="modal"]').forEach(function(btn){ btn.addEventListener('click', function(){ modalEl.classList.remove('fallback-show'); backdrop.remove(); modalEl.setAttribute('aria-hidden','true'); document.body.style.overflow = ''; }); });
+            backdrop.addEventListener('click', function(){ modalEl.classList.remove('fallback-show'); backdrop.remove(); modalEl.setAttribute('aria-hidden','true'); document.body.style.overflow = ''; });
+          }
+
+          function loadConfirmFragment(form){
+            var action = form.action;
+            var modalEl = document.getElementById('confirmModal');
+            var modalContent = modalEl.querySelector('.modal-content');
+            // Try to fetch server-rendered fragment
+            fetch(action + (action.indexOf('?')===-1? '?':'&') + 'ajax=1', { credentials: 'same-origin' })
+              .then(function(resp){ if(!resp.ok) throw new Error('network'); return resp.text(); })
+              .then(function(html){
+                modalContent.innerHTML = html;
+                // ensure the confirm form posts to the correct URL
+                var confirmForm = modalContent.querySelector('#confirmDeleteForm');
+                if(confirmForm){ confirmForm.action = action; }
+                showConfirmModal();
+              })
+              .catch(function(){
+                // fallback: build minimal confirm UI using data attributes, wire the original form to submit when user confirms
+                var title = form.getAttribute('data-title') || '';
+                var author = form.getAttribute('data-author') || '';
+                var cover = form.getAttribute('data-cover') || '';
+                modalContent.innerHTML = '\n          <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,0.04);padding:1rem 1.25rem;background:linear-gradient(180deg,#3b302b,#2f241d)">\n            <h5 class="modal-title" style="color:#efe8e0;font-weight:700">Supprimer le livre</h5>\n            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>\n          </div>\n          <div class="modal-body" style="padding:1.1rem;">\n            <div style="display:flex;gap:12px;align-items:center">\n              <div style="flex:0 0 auto">\n                <img src="'+cover+'" style="width:110px;border-radius:6px;box-shadow:0 8px 20px rgba(0,0,0,0.6);border:3px solid rgba(0,0,0,0.2)">\n              </div>\n              <div style="flex:1 1 auto">\n                <h4 style="margin:0 0 .4rem;color:#f7efd9">Voulez-vous vraiment supprimer ce livre ?</h4>\n                <p style="margin:0 0 .6rem;color:#fff;font-weight:600">“'+title+'” de <strong>'+author+'</strong> va être définitivement supprimé.</p>\n                <p style="margin:0;color:rgba(245,231,220,0.8)">Cette action est irréversible.</p>\n              </div>\n            </div>\n          </div>\n          <div class="modal-footer" style="padding:1rem;border-top:0;display:flex;justify-content:flex-end;gap:.75rem;background:transparent">\n            <button id="fallbackCancel" type="button" class="btn" data-bs-dismiss="modal" style="background:#5f534d;color:#efe8e0;padding:.6rem 1.2rem;border-radius:8px">Annuler</button>\n            <button id="fallbackDelete" type="button" class="btn" style="background:linear-gradient(180deg,#c0422f,#9e2a1f);color:#fff;padding:.6rem 1.4rem;border-radius:8px">Supprimer</button>\n          </div>\n        ';
+                showConfirmModal();
+                // wire fallback buttons
+                var fbCancel = modalContent.querySelector('#fallbackCancel');
+                var fbDelete = modalContent.querySelector('#fallbackDelete');
+                if(fbCancel) fbCancel.addEventListener('click', function(){ var modalEl = document.getElementById('confirmModal'); modalEl.classList.remove('fallback-show'); var bd = document.querySelector('.modal-backdrop.fallback'); if(bd) bd.remove(); modalEl.setAttribute('aria-hidden','true'); document.body.style.overflow = ''; });
+                if(fbDelete) fbDelete.addEventListener('click', function(){ form.submit(); });
+              });
+          }
+
+          // attach handlers to all delete forms
+          document.querySelectorAll('form.delete-form').forEach(function(f){
+            f.addEventListener('submit', function(e){ e.preventDefault(); loadConfirmFragment(f); });
+          });
+
+        });
+        </script>
+            <thead>
+              <tr>
+                <th>Titre</th>
+                <th>Auteur</th>
+                <th>Genre</th>
+                <th>Disponibilité</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+                {% with book=row.book %}
+                <tr>
+                  {# selection checkbox removed for librarian UI simplification #}
+                  <td class="title-cell">
+                    <div class="thumb-cell">
+                      {% if book.cover %}
+                        <img src="{{ book.cover.url }}" alt="{{ book.title }}">
+                      {% else %}
+                        <img src="{% static 'Home/default_cover.svg' %}" alt="placeholder">
+                      {% endif %}
+                    </div>
+                    <div class="title-meta">
+                      <div class="title">{{ book.title }}</div>
+                      <div class="subtitle">{{ book.author }}</div>
+                    </div>
+                  </td>
+                  <td>{{ book.author }}</td>
+                  <td>{{ book.get_genre_display }}</td>
+                  <td>
+                    {% if book.availability == 'available' %}
+                      <span class="badge available">{{ book.get_availability_display }}</span>
+                    {% elif book.availability == 'limited' %}
+                      <span class="badge limited">{{ book.get_availability_display }}</span>
+                    {% elif book.availability == 'out' or book.availability == 'rupture' %}
+                      <span class="badge out">{{ book.get_availability_display }}</span>
+                    {% elif book.availability == 'reserved' %}
+                      <span class="badge reserved">{{ book.get_availability_display }}</span>
+                    {% else %}
+                      <span class="badge">{{ book.get_availability_display }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="actions">
+                    <button type="button" class="btn btn-mod" data-edit-url="{{ row.change_url }}" title="Modifier">
+                      <span class="icon">✎</span>
+                      <span class="label">Modifier</span>
+                    </button>
+                    <form method="post" action="{{ row.delete_url }}" class="inline-del delete-form" data-title="{{ book.title|escapejs }}" data-author="{{ book.author|escapejs }}" data-cover="{% if book.cover %}{{ book.cover.url }}{% else %}{% static 'Home/default_cover.svg' %}{% endif %}">{% csrf_token %}
+                      <button class="btn btn-del" type="submit" title="Supprimer">
+                        <span class="icon">🗑</span>
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% endwith %}
+              {% empty %}
+                <tr><td colspan="5">Aucun livre trouvé.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          <div class="table-footer">
+            <div class="range">{{ page_obj.start_index }}–{{ page_obj.end_index }} sur {{ page_obj.paginator.count }}</div>
+            <div class="pager">
+              {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="page-btn">Précédent</a>{% endif %}
+              {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="page-btn">Suivant</a>{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="welcome-card">
+          <h3>Bienvenue sur votre interface bibliothécaire!</h3>
+          <p>Ajoutez, gérez en surface facilement l'état de votre catalogue de livres et suivez les demandes des étudiants et des enseignants.</p>
+          <a href="#" id="openAddBottom" class="btn add-green" role="button" data-bs-toggle="modal" data-bs-target="#addBookVintageModal" onclick="openAddModalFallback(event)">+ Ajouter un livre</a>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- Bootstrap Modal Add Book -->
+<style>
+/* Minimal fallback styles to show modal centered if Bootstrap CSS is unavailable */
+#addBookModal.fallback-show{display:block;position:fixed;inset:0;z-index:1060;overflow-y:auto;padding:1.5rem}
+#addBookModal.fallback-show .modal-dialog{max-width:980px;margin:2rem auto}
+.modal-backdrop.fallback{position:fixed;inset:0;background:#000;opacity:0.5;z-index:1040}
+#addBookModal .modal-content{border-radius:8px;background:linear-gradient(180deg,#3b302b,#2f241d);color:#efe8e0;padding:0;box-shadow:0 30px 80px rgba(0,0,0,0.6)}
+#addBookModal .modal-header{padding:1rem;border-bottom:1px solid rgba(255,255,255,0.03)}
+#addBookModal .modal-body{padding:1rem}
+#addBookModal .modal-footer{padding:0.75rem;border-top:1px solid rgba(255,255,255,0.02)}
+/* Spacing improvements between form fields and buttons */
+#addBookModal .modal-body .form-label{display:block;margin-bottom:0.35rem}
+#addBookModal .modal-body .form-control, #addBookModal .modal-body .form-select{margin-bottom:0.9rem}
+#addBookModal .modal-footer{padding-top:1rem;display:flex;gap:0.75rem}
+#addBookModal .modal-footer .btn{min-width:110px}
+</style>
+
+<style>
+/* Styles for edit modal preview */
+.cover-preview{display:flex;align-items:center;gap:12px;margin-bottom:0.6rem}
+.cover-thumb{width:64px;height:92px;object-fit:cover;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,0.4)}
+.cover-filename{font-size:0.9rem;color:#efe8e0}
+#editBookModal .modal-body .form-control{margin-bottom:0.6rem}
+#editBookModal .modal-body .form-label{margin-bottom:0.25rem}
+#confirmModal .modal-body{padding:1rem}
+</style>
+</style>
+{% include 'Home/partials/add_book_vintage.html' %}
+
+<!-- Bootstrap JS and dependencies (SRI removed to avoid blocking in local env) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+// Global opener function to ensure modal opens even if other scripts fail
+function openAddModalFallback(e){
+  try{
+    if(e && e.preventDefault) e.preventDefault();
+  }catch(err){}
+  var modalEl = document.getElementById('addBookVintageModal');
+  if(window.bootstrap && bootstrap.Modal && modalEl){
+    try{ new bootstrap.Modal(modalEl).show(); return; }catch(err){ console.error('bootstrap modal failed', err); }
+  }
+  // manual fallback
+  if(modalEl){
+              modalEl.classList.add('fallback-show');
+              modalEl.removeAttribute('aria-hidden');
+              var backdrop = document.createElement('div');
+              backdrop.className = 'modal-backdrop fallback';
+              // ensure backdrop covers whole viewport and sits below modal
+              backdrop.style.position = 'fixed';
+              backdrop.style.inset = '0';
+              backdrop.style.top = '0';
+              backdrop.style.left = '0';
+              backdrop.style.width = '100%';
+              backdrop.style.height = '100%';
+              backdrop.style.background = 'rgba(0,0,0,0.6)';
+              backdrop.style.zIndex = '1050';
+              document.body.appendChild(backdrop);
+    // prevent background scroll while modal open
+    document.body.style.overflow = 'hidden';
+    document.querySelectorAll('[data-bs-dismiss="modal"]').forEach(function(btn){ btn.addEventListener('click', function(){ modalEl.classList.remove('fallback-show'); backdrop.remove(); modalEl.setAttribute('aria-hidden','true'); document.body.style.overflow = ''; }); });
+    backdrop.addEventListener('click', function(){ modalEl.classList.remove('fallback-show'); backdrop.remove(); modalEl.setAttribute('aria-hidden','true'); document.body.style.overflow = ''; });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  console.log('library_manage: DOM loaded');
+  var open2 = document.getElementById('openAddBottom');
+  var modalEl = document.getElementById('addBookVintageModal');
+
+  function hideModalFallback(){
+    if(!modalEl) return;
+    modalEl.classList.remove('fallback-show');
+    modalEl.setAttribute('aria-hidden', 'true');
+    var bd = document.querySelector('.modal-backdrop.fallback');
+    if(bd) bd.remove();
+  }
+
+  if(open2){
+    // If Bootstrap is available, let its data-bs attributes handle the modal open.
+    if(!(window.bootstrap && bootstrap.Modal)){
+      open2.addEventListener('click', function(e){
+        // Fallback behavior when Bootstrap JS is not present
+        e.preventDefault();
+        if(modalEl){
+          modalEl.classList.add('fallback-show');
+          modalEl.removeAttribute('aria-hidden');
+          var backdrop = document.createElement('div');
+          backdrop.className = 'modal-backdrop fallback';
+          // ensure backdrop covers whole viewport and sits below modal when bootstrap absent
+          backdrop.style.position = 'fixed';
+          backdrop.style.inset = '0';
+          backdrop.style.top = '0';
+          backdrop.style.left = '0';
+          backdrop.style.width = '100%';
+          backdrop.style.height = '100%';
+          backdrop.style.background = 'rgba(0,0,0,0.6)';
+          backdrop.style.zIndex = '1050';
+          document.body.appendChild(backdrop);
+          document.querySelectorAll('[data-bs-dismiss="modal"]').forEach(function(btn){
+            btn.addEventListener('click', hideModalFallback);
+          });
+          backdrop.addEventListener('click', hideModalFallback);
+        }
+      });
+    }
+  } else {
+    console.log('openAddBottom element not found');
+  }
+
+  // client-side bootstrap validation (optional)
+  (function () {
+    'use strict'
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        form.classList.add('was-validated')
+      }, false)
+    })
+  })()
+});
+</script>
+
+<!-- Edit / Delete modals and JS -->
+<!-- Single edit modal used for all books -->
+<div class="modal fade" id="editBookModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editBookModalLabel">Modifier le livre</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="editBookModalBody">
+        <!-- loaded via AJAX -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation modal (used for delete) -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+            <h5 class="modal-title">Supprimer le livre</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+          </div>
+      <div class="modal-body" id="confirmModalBody"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  // Edit button click -> fetch form fragment and show modal
+  document.querySelectorAll('button[data-edit-url]').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      var url = btn.getAttribute('data-edit-url');
+      fetch(url + '?ajax=1', {headers: {'X-Requested-With': 'XMLHttpRequest'}, credentials: 'same-origin'})
+        .then(function(r){
+          // log status for debugging
+          console.log('edit fetch status', r.status, url);
+          if(r.status === 401){
+            return r.json().then(function(data){ throw new Error('login_required:' + (data.login_url || '/login/')); });
+          }
+          return r.text().then(function(txt){
+            // try to parse JSON if server returned JSON
+            try{ return JSON.parse(txt); }catch(e){ return {html: txt}; }
+          });
+        })
+        .then(function(data){
+          if(data.login_required){ window.location.href = data.login_url || '/login/'; return; }
+          console.log('edit fetch data', data);
+          var body = document.getElementById('editBookModalBody');
+          var html = data.html || '';
+          // if server returned a full page, extract the form fragment
+          if(/<!doctype|<html/i.test(html)){
+            var m = html.match(/<form[\s\S]*?id=["']bookEditForm["'][\s\S]*?<\/form>/i);
+            if(m){ html = m[0]; }
+            else{
+              var m2 = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+              if(m2) html = m2[1];
+            }
+          }
+          body.innerHTML = html;
+          // set form action to url
+          var form = body.querySelector('form');
+          if(form) form.action = url;
+          try{
+            var modal = new bootstrap.Modal(document.getElementById('editBookModal'));
+            modal.show();
+          }catch(showErr){
+            // fallback: manually show modal if bootstrap isn't available
+            try{
+              var modalEl = document.getElementById('editBookModal');
+              modalEl.classList.add('show');
+              modalEl.style.display = 'block';
+              modalEl.removeAttribute('aria-hidden');
+              modalEl.style.position = 'fixed';
+              modalEl.style.left = '50%';
+              modalEl.style.top = '50%';
+              modalEl.style.transform = 'translate(-50%, -50%)';
+              modalEl.style.zIndex = 1060;
+              var backdrop = document.createElement('div');
+              backdrop.className = 'modal-backdrop fade show';
+              // ensure full-viewport backdrop
+              backdrop.style.position = 'fixed';
+              backdrop.style.inset = '0';
+              backdrop.style.top = '0';
+              backdrop.style.left = '0';
+              backdrop.style.width = '100%';
+              backdrop.style.height = '100%';
+              backdrop.style.background = 'rgba(0,0,0,0.6)';
+              backdrop.style.zIndex = 1050;
+              document.body.appendChild(backdrop);
+              document.body.style.overflow = 'hidden';
+              // wire dismiss buttons
+              modalEl.querySelectorAll('[data-bs-dismiss="modal"]').forEach(function(btn){
+                btn.addEventListener('click', function(){ modalEl.classList.remove('show'); modalEl.style.display='none'; backdrop.remove(); modalEl.setAttribute('aria-hidden','true'); document.body.style.overflow = ''; });
+              });
+            }catch(e2){
+              console.error('modal show failed', showErr, e2);
+              alert('Impossible d\u2019afficher la modal.');
+            }
+          }
+        }).catch(function(err){
+          if(typeof err === 'object' && err.message && err.message.indexOf('login_required:') === 0){
+            var login = err.message.split(':')[1] || '/login/';
+            window.location.href = login;
+            return;
+          }
+          console.error('Edit fetch error', err);
+          var msg = (err && err.message) ? err.message : String(err);
+          alert('Impossible de charger le formulaire. Détails: ' + msg);
+        });
+    });
+  });
+
+  // delegate submit for edit form (so it works after AJAX load)
+  document.body.addEventListener('submit', function(e){
+    var form = e.target;
+    if(form && form.id === 'bookEditForm'){
+      e.preventDefault();
+      var action = form.action;
+      var fd = new FormData(form);
+      // include ajax flag
+      fd.append('ajax', '1');
+      // CSRF token from cookie
+      function getCookie(name){
+        var v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return v ? v.pop() : '';
+      }
+      fetch(action, {
+        method: 'POST',
+        body: fd,
+        credentials: 'same-origin',
+        headers: {'X-Requested-With':'XMLHttpRequest','X-CSRFToken': getCookie('csrftoken')}
+      }).then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data.success){
+          var modalEl = document.getElementById('editBookModal');
+          try{ bootstrap.Modal.getInstance(modalEl).hide(); }catch(e){}
+          window.location.reload();
+        } else if(data.html){
+          // replace modal body with returned form html (shows errors)
+          var body = document.getElementById('editBookModalBody');
+          body.innerHTML = data.html;
+        }
+      }).catch(function(err){ console.error(err); alert('Erreur lors de la sauvegarde'); });
+      return;
+    }
+    if(form && form.id === 'confirmDeleteForm'){
+      e.preventDefault();
+      var action = form.action;
+      var fd = new FormData(form);
+      fd.append('ajax','1');
+      function getCookie(name){
+        var v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return v ? v.pop() : '';
+      }
+      fetch(action, {
+        method: 'POST',
+        body: fd,
+        credentials: 'same-origin',
+        headers: {'X-Requested-With':'XMLHttpRequest','X-CSRFToken': getCookie('csrftoken')}
+      }).then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data.success){
+          try{ bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide(); }catch(e){}
+          window.location.reload();
+        }
+      }).catch(function(err){ console.error(err); alert('Erreur lors de la suppression'); });
+      return;
+    }
+  });
+
+  // intercept delete forms to show confirmation modal
+  document.querySelectorAll('form.delete-form').forEach(function(f){
+    f.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      var url = f.action;
+      // helper to show fallback confirm modal using data attributes
+      function showFallbackConfirmFromForm(form){
+        var title = form.dataset.title || '';
+        var author = form.dataset.author || '';
+        var cover = form.dataset.cover || '';
+        var modalContent = document.querySelector('#confirmModal .modal-content');
+        var html = '';
+        html += '<div id="confirmBookMeta" data-title="' + (title.replace(/"/g,'\"')) + '"></div>';
+        html += '<div class="modal-header confirm-modal-header confirm-modal-content">';
+        html += '<h5 class="modal-title confirm-title">Supprimer le livre</h5>';
+        html += '<button type="button" class="btn-close confirm-close" data-bs-dismiss="modal" aria-label="Fermer"></button>';
+        html += '</div>';
+        html += '<div class="modal-body confirm-body confirm-modal-content">';
+        html += '<div class="row g-3 align-items-center">';
+        html += '<div class="col-auto d-flex justify-content-center">';
+        html += '<img src="' + cover + '" class="confirm-cover" alt="' + (title.replace(/"/g,'\"')) + '"/>';
+        html += '</div>';
+        html += '<div class="col">';
+        html += '<h4 class="confirm-heading">Voulez-vous vraiment supprimer ce livre ?</h4>';
+        html += '<p class="confirm-message"><span class="confirm-quote">“' + title + '”</span> de <strong>' + author + '</strong> va être définitivement supprimé.</p>';
+        html += '<p class="confirm-sub">Cette action est irréversible.</p>';
+        html += '</div></div></div>';
+        html += '<div class="modal-footer confirm-footer confirm-modal-content">';
+        html += '<button type="button" id="confirmCancelBtn" class="btn btn-confirm-cancel" data-bs-dismiss="modal">Annuler</button>';
+        html += '<form method="post" id="confirmDeleteForm" style="display:inline;">';
+        html += '<button type="submit" id="confirmDeleteBtn" class="btn btn-confirm-delete">Supprimer</button>';
+        html += '</form>';
+        html += '</div>';
+        modalContent.innerHTML = html;
+        var confirmForm = modalContent.querySelector('#confirmDeleteForm');
+        if(confirmForm) confirmForm.action = form.action;
+        try{ var modal = new bootstrap.Modal(document.getElementById('confirmModal')); modal.show(); }
+        catch(e){
+          var modalEl = document.getElementById('confirmModal');
+          modalEl.classList.add('show');
+          modalEl.style.display = 'block';
+          modalEl.removeAttribute('aria-hidden');
+          modalEl.style.position = 'fixed';
+          modalEl.style.left = '50%';
+          modalEl.style.top = '50%';
+          modalEl.style.transform = 'translate(-50%, -50%)';
+          modalEl.style.zIndex = 1060;
+          var backdrop = document.querySelector('.modal-backdrop.fallback') || document.createElement('div');
+          backdrop.className = 'modal-backdrop fade show';
+          backdrop.style.position = 'fixed';
+          backdrop.style.inset = '0';
+          backdrop.style.top = '0';
+          backdrop.style.left = '0';
+          backdrop.style.width = '100%';
+          backdrop.style.height = '100%';
+          backdrop.style.background = 'rgba(0,0,0,0.6)';
+          backdrop.style.zIndex = 1050;
+          if(!document.body.contains(backdrop)) document.body.appendChild(backdrop);
+          document.body.style.overflow = 'hidden';
+          modalEl.querySelectorAll('[data-bs-dismiss="modal"]').forEach(function(btn){ btn.addEventListener('click', function(){ modalEl.classList.remove('show'); modalEl.style.display='none'; if(backdrop) backdrop.remove(); modalEl.setAttribute('aria-hidden','true'); document.body.style.overflow = ''; }); });
+        }
+      }
+      fetch(url + '?ajax=1', {headers: {'X-Requested-With': 'XMLHttpRequest'}, credentials: 'same-origin'})
+        .then(function(r){
+          if(r.status === 401) return r.json().then(function(d){ throw new Error('login_required:' + (d.login_url || '/login/')); });
+          return r.text().then(function(txt){ try{ return JSON.parse(txt); }catch(e){ return {html: txt}; } });
+        })
+          .then(function(data){
+            var modalContent = document.querySelector('#confirmModal .modal-content');
+            var html = data.html || '';
+            // if full page returned, try to extract fragment starting at confirmBookMeta
+            if(/<!doctype|<html/i.test(html)){
+              var m = html.match(/<div[^>]*id=["']confirmBookMeta["'][\s\S]*?<\/div>/i);
+              if(m) html = html.substring(html.indexOf(m[0]));
+              else{
+                var m2 = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+                if(m2) html = m2[1];
+              }
+            }
+            // if server indicates forbidden, show message instead of modal
+            try{
+              var parsed = JSON.parse(html);
+              if(parsed.forbidden){ alert(parsed.message || 'Accès refusé.'); return; }
+            }catch(e){}
+            // inject the server fragment into the full modal content so partial's header/body/footer are used
+            modalContent.innerHTML = html;
+            // ensure the confirm form posts to the correct URL
+            var confirmForm = modalContent.querySelector('#confirmDeleteForm');
+            if(confirmForm) confirmForm.action = url;
+            try{ var modal = new bootstrap.Modal(document.getElementById('confirmModal')); modal.show(); }
+            catch(e){ try{ var modalEl = document.getElementById('confirmModal');
+                modalEl.classList.add('show');
+                modalEl.style.display='block';
+                modalEl.removeAttribute('aria-hidden');
+                modalEl.style.position = 'fixed';
+                modalEl.style.left = '50%';
+                modalEl.style.top = '50%';
+                modalEl.style.transform = 'translate(-50%, -50%)';
+                modalEl.style.zIndex = 1060;
+                var backdrop = document.querySelector('.modal-backdrop.fallback') || document.createElement('div');
+                backdrop.className = 'modal-backdrop fade show';
+                backdrop.style.position = 'fixed';
+                backdrop.style.inset = '0';
+                backdrop.style.top = '0';
+                backdrop.style.left = '0';
+                backdrop.style.width = '100%';
+                backdrop.style.height = '100%';
+                backdrop.style.background = 'rgba(0,0,0,0.6)';
+                backdrop.style.zIndex = 1050;
+                if(!document.body.contains(backdrop)) document.body.appendChild(backdrop);
+                document.body.style.overflow = 'hidden';
+                modalEl.querySelectorAll('[data-bs-dismiss="modal"]').forEach(function(btn){ btn.addEventListener('click', function(){ modalEl.classList.remove('show'); modalEl.style.display='none'; if(backdrop) backdrop.remove(); modalEl.setAttribute('aria-hidden','true'); document.body.style.overflow = ''; }); });
+              }catch(e2){}
+            }
+          })
+        .catch(function(err){
+          // if AJAX fails, show fallback confirm built from data attributes
+          try{ showFallbackConfirmFromForm(f); return; }catch(e){}
+          if(typeof err === 'object' && err.message && err.message.indexOf('login_required:') === 0){
+            var login = err.message.split(':')[1] || '/login/';
+            window.location.href = login;
+            return;
+          }
+          console.error(err); alert('Impossible de charger la confirmation.');
+        });
+    });
+  });
+});
+</script>
+
+{% endblock %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  function cleanupBackdrops(){
+    // remove any leftover fallback backdrops
+    document.querySelectorAll('.modal-backdrop.fallback').forEach(function(b){ b.remove(); });
+    // keep only a single bootstrap backdrop if multiples exist
+    var bxs = document.querySelectorAll('.modal-backdrop.fade.show');
+    if(bxs.length>1){
+      bxs.forEach(function(b,i){ if(i>0) b.remove(); });
+    }
+  }
+
+  // When bootstrap shows a modal, ensure z-index ordering and cleanup
+  try{
+    document.querySelectorAll('.modal').forEach(function(m){
+      m.addEventListener('show.bs.modal', function(){ cleanupBackdrops(); m.style.zIndex = 1060; });
+    });
+  }catch(e){}
+
+  // Observe DOM for added backdrops and ensure correct z-indexing
+  if(window.MutationObserver){
+    var mo = new MutationObserver(function(mutations){
+      mutations.forEach(function(m){
+        m.addedNodes.forEach(function(n){
+          if(n.nodeType===1 && n.classList && n.classList.contains('modal-backdrop')){
+            n.style.zIndex = '1050';
+            var visible = document.querySelector('.modal.show, .modal.fallback-show');
+            if(visible) visible.style.zIndex = 1060;
+          }
+        });
+      });
+    });
+    mo.observe(document.body, {childList:true, subtree:true});
+  }
+
+  // Run cleanup once on load
+  cleanupBackdrops();
+});
+</script>
+
+<script>
+// Ensure add modal footer always has Cancel + Add buttons (covers dynamic replacement cases)
+document.addEventListener('DOMContentLoaded', function(){
+  function ensureAddFooter(){
+    var modal = document.getElementById('addBookVintageModal');
+    if(!modal) return;
+    var form = modal.querySelector('form');
+    if(!form) return;
+    var footer = modal.querySelector('.modal-footer');
+    if(!footer){
+      footer = document.createElement('div');
+      footer.className = 'modal-footer';
+      modal.querySelector('.modal-content').appendChild(footer);
+    }
+    // If buttons already present, update labels/ids and return
+    var cancel = footer.querySelector('#addBookCancel');
+    var submit = footer.querySelector('#addBookSubmit');
+    if(!cancel){
+      cancel = document.createElement('button');
+      cancel.type = 'button';
+      cancel.id = 'addBookCancel';
+      cancel.className = 'btn btn-secondary';
+      cancel.setAttribute('data-bs-dismiss','modal');
+      cancel.textContent = 'Annuler';
+      footer.appendChild(cancel);
+    }
+    if(!submit){
+      submit = document.createElement('button');
+      submit.type = 'submit';
+      submit.id = 'addBookSubmit';
+      submit.className = 'btn btn-success';
+      submit.textContent = 'Ajouter';
+      footer.appendChild(submit);
+    }
+    // Ensure the submit button is associated with the form (in case form moved)
+    submit.addEventListener('click', function(){
+      // submit will naturally submit the nearest form, but ensure by calling form.submit when needed
+      try{ if(!form.checkValidity || form.checkValidity()) return; }catch(e){}
+    });
+  }
+
+  // run once on load
+  ensureAddFooter();
+
+  // also observe mutations inside the modal to re-ensure footer if content is replaced
+  var modal = document.getElementById('addBookVintageModal');
+  if(modal && window.MutationObserver){
+    var mo = new MutationObserver(function(){ ensureAddFooter(); });
+    mo.observe(modal, {childList:true, subtree:true});
+  }
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  function setupCoverInputs(context){
+    context = context || document;
+    context.querySelectorAll('.btn-change-img').forEach(function(btn){
+      if(btn._coverBound) return; btn._coverBound = true;
+      btn.addEventListener('click', function(){
+        var p = btn.closest('.edit-cover-block') || document;
+        var input = p.querySelector('input[type=file][name=cover]');
+        if(input) input.click();
+      });
+    });
+    context.querySelectorAll('input[type=file][name=cover]').forEach(function(input){
+      if(input._coverBound) return; input._coverBound = true;
+      input.addEventListener('change', function(){
+        var p = input.closest('.edit-cover-block');
+        var preview = p ? p.querySelector('.cover-preview-large') : null;
+        var filenameEl = p ? p.querySelector('.cover-filename') : null;
+        var file = input.files && input.files[0];
+        if(file){
+          if(filenameEl) filenameEl.textContent = file.name;
+          if(preview && preview.tagName === 'IMG'){
+            var url = URL.createObjectURL(file);
+            preview.src = url;
+          } else if(preview){
+            var img = document.createElement('img');
+            img.className = 'cover-preview-large';
+            img.src = URL.createObjectURL(file);
+            preview.replaceWith(img);
+          }
+        } else { if(filenameEl) filenameEl.textContent = 'Aucun fichier choisi'; }
+      });
+    });
+  }
+  setupCoverInputs(document);
+  var observer = new MutationObserver(function(muts){
+    muts.forEach(function(m){
+      m.addedNodes.forEach(function(n){
+        if(n.nodeType===1){
+          if(n.querySelector && (n.querySelector('.edit-cover-block') || n.querySelector('input[type=file][name=cover]'))){
+            setupCoverInputs(n);
+          }
+        }
+      });
+    });
+  });
+  observer.observe(document.body,{childList:true,subtree:true});
+});
+</script>
+
+<script>
+// Robust modal cleanup: remove backdrops, hide any visible modals, and restore page state
+function robustModalCleanup(){
+  // remove all backdrop elements immediately
+  document.querySelectorAll('.modal-backdrop').forEach(function(b){ try{ b.parentNode && b.parentNode.removeChild(b); }catch(e){} });
+
+  // Hide and clean each modal element
+  document.querySelectorAll('.modal').forEach(function(m){
+    try{
+      // If bootstrap instance exists, ask it to hide (preferred)
+      if(window.bootstrap && bootstrap.Modal && typeof bootstrap.Modal.getInstance === 'function'){
+        try{
+          var inst = bootstrap.Modal.getInstance(m);
+          if(inst && typeof inst.hide === 'function'){
+            inst.hide();
+          }
+        }catch(e){}
+      }
+      // Remove visible/fallback classes and inline styles defensively
+      m.classList.remove('show','fade','fallback-show');
+      m.style.display = 'none';
+      m.setAttribute('aria-hidden','true');
+      m.style.position = '';
+      m.style.left = '';
+      m.style.top = '';
+      m.style.transform = '';
+      m.style.zIndex = '';
+    }catch(e){}
+  });
+
+  // restore body state
+  try{
+    document.body.classList.remove('modal-open');
+    document.documentElement.classList.remove('modal-open');
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+  }catch(e){}
+}
+
+// Ensure pointer events and aria-hidden are cleared so page becomes interactive
+function restoreInteractionState(){
+  try{
+    document.body.style.pointerEvents = '';
+    document.querySelectorAll('body *').forEach(function(el){
+      try{ if(el.style) el.style.pointerEvents = ''; }catch(e){}
+      try{ if(el.getAttribute && el.getAttribute('aria-hidden') === 'true') el.removeAttribute('aria-hidden'); }catch(e){}
+    });
+  }catch(e){}
+}
+
+// call restoreInteractionState inside robust cleanup and aggressive remover
+var _wrapOrigRobust = robustModalCleanup;
+robustModalCleanup = function(){ try{ _wrapOrigRobust(); }catch(e){} try{ restoreInteractionState(); }catch(e){} };
+
+var _wrapAggressive = aggressiveOverlayRemoval;
+aggressiveOverlayRemoval = function(){ try{ _wrapAggressive(); }catch(e){} try{ restoreInteractionState(); }catch(e){} };
+
+// Aggressive overlay remover: finds fullscreen fixed elements with dark backgrounds or very high z-index and removes them
+function aggressiveOverlayRemoval(){
+  try{
+    var candidates = [];
+    var all = Array.prototype.slice.call(document.querySelectorAll('body *'));
+    all.forEach(function(el){
+      try{
+        var cs = window.getComputedStyle(el);
+        if(!cs) return;
+        var pos = cs.position;
+        var z = parseInt(cs.zIndex,10);
+        var bg = cs.backgroundColor || cs.background;
+        var visible = el.offsetWidth>0 && el.offsetHeight>0;
+        if(!visible) return;
+        // likely overlay if fixed/absolute, covers most viewport, dark background or very high z-index
+        var covers = (el.offsetWidth >= (window.innerWidth - 10) && el.offsetHeight >= (window.innerHeight - 10));
+        var darkBg = false;
+        if(bg && typeof bg === 'string'){
+          var m = bg.match(/rgba?\(([^)]+)\)/);
+          if(m){
+            var parts = m[1].split(',').map(function(s){return parseFloat(s.trim());});
+            if(parts.length>=3){
+              var r=parts[0], g=parts[1], b=parts[2];
+              var a = parts.length===4?parts[3]:1;
+              var lum = (0.2126*r + 0.7152*g + 0.0722*b);
+              if((a>0.05 && lum < 100) || a>0.2) darkBg = true;
+            }
+          } else if(bg.indexOf('#')===0){
+            darkBg = true;
+          }
+        }
+        if((pos==='fixed' || pos==='absolute' || (z && z>1000)) && (covers || darkBg || (z && z>2000))){
+          candidates.push(el);
+        }
+      }catch(e){}
+    });
+    // remove candidates but keep known UI elements (skip if element id contains 'keep' or inside nav)
+    candidates.forEach(function(el){
+      try{
+        if(el.id && /keep|nav|sidebar|header/i.test(el.id)) return;
+        if(el.closest && el.closest('nav, header, aside, .left-nav')) return;
+        el.parentNode && el.parentNode.removeChild(el);
+        console.log('aggressiveOverlayRemoval: removed overlay element', el);
+      }catch(e){console.warn('aggressiveOverlayRemoval failed', e);}
+    });
+    // final body restore
+    try{ document.body.style.overflow = ''; document.body.classList.remove('modal-open'); }catch(e){}
+  }catch(e){ console.error('aggressiveOverlayRemoval error', e); }
+}
+
+// call aggressive removal after robust cleanup to catch unusual overlays
+var _origRobustModalCleanup2 = robustModalCleanup;
+robustModalCleanup = function(){ try{ _origRobustModalCleanup2(); }catch(e){} try{ aggressiveOverlayRemoval(); }catch(e){} };
+
+// Global Bootstrap event handlers to ensure consistent cleanup
+try{
+  // when any modal starts to show, ensure no orphan backdrops remain
+  document.addEventListener('show.bs.modal', function(e){
+    try{ document.querySelectorAll('.modal-backdrop').forEach(function(b){ b.remove(); }); }catch(_){}
+    try{ document.body.classList.add('modal-open'); }catch(_){}
+  }, true);
+
+  // when hiding starts, schedule a cleanup shortly after
+  document.addEventListener('hide.bs.modal', function(e){
+    try{ setTimeout(function(){ robustModalCleanup(); }, 10); }catch(_){}
+  }, true);
+
+  // when a modal is fully hidden, do immediate and repeated cleanup to avoid race conditions
+  document.addEventListener('hidden.bs.modal', function(e){
+    try{ robustModalCleanup(); }catch(_){}
+    // repeat a few times to ensure any late-added backdrops are removed
+    for(var i=1;i<=6;i++){ (function(i){ setTimeout(function(){ try{ robustModalCleanup(); }catch(_){} }, i*60); })(i); }
+  }, true);
+}catch(e){ console.error('bootstrap event handler attach failed', e); }
+
+// Remove duplicate backdrops when they appear and ensure z-index ordering
+var backdropObserver = new MutationObserver(function(muts){
+  muts.forEach(function(m){
+    m.addedNodes.forEach(function(n){
+      if(n.nodeType===1 && n.classList && n.classList.contains('modal-backdrop')){
+        // remove duplicates keeping at most one backdrop
+        var all = document.querySelectorAll('.modal-backdrop');
+        if(all.length>1){ for(var i=1;i<all.length;i++){ try{ all[i].remove(); }catch(e){} } }
+        // ensure it's behind the modal
+        try{ n.style.zIndex = '1050'; }catch(e){}
+      }
+    });
+  });
+});
+backdropObserver.observe(document.body,{childList:true,subtree:true});
+
+// Attach delegated handlers to catch dismiss clicks and form submits
+document.addEventListener('click', function(ev){
+  var btn = ev.target.closest && ev.target.closest('[data-bs-dismiss="modal"], .btn-close, .confirm-close');
+  if(btn){ setTimeout(robustModalCleanup, 20); }
+});
+document.addEventListener('submit', function(){ setTimeout(robustModalCleanup, 40); });
+
+// Also clean when bootstrap fires its hidden event (if available)
+try{
+  document.querySelectorAll('.modal').forEach(function(m){ m.addEventListener('hidden.bs.modal', function(){ setTimeout(robustModalCleanup, 10); }); });
+}catch(e){}
+
+// Defensive: run cleanup on focus and on load to ensure no stuck overlay
+window.addEventListener('focus', function(){ setTimeout(robustModalCleanup, 40); });
+window.addEventListener('load', function(){ setTimeout(robustModalCleanup, 100); });
+// create a small visible debug button to force cleanup (helps user test without devtools)
+try{
+  var existingBtn = document.getElementById('_overlayFixBtn');
+  if(!existingBtn){
+    var fixBtn = document.createElement('button');
+    fixBtn.id = '_overlayFixBtn';
+    fixBtn.title = 'Règle l\'overlay si elle reste bloquée';
+    fixBtn.textContent = 'Fix overlay';
+    fixBtn.style.position = 'fixed';
+    fixBtn.style.right = '16px';
+    fixBtn.style.bottom = '16px';
+    fixBtn.style.zIndex = '2000';
+    fixBtn.style.padding = '8px 10px';
+    fixBtn.style.background = 'rgba(255,255,255,0.06)';
+    fixBtn.style.color = '#efe8e0';
+    fixBtn.style.border = '1px solid rgba(255,255,255,0.06)';
+    fixBtn.style.borderRadius = '6px';
+    fixBtn.style.backdropFilter = 'blur(4px)';
+    fixBtn.style.cursor = 'pointer';
+    fixBtn.addEventListener('click', function(e){ e.preventDefault(); try{ robustModalCleanup(); console.log('overlayFixBtn clicked — cleanup executed'); }catch(err){ console.error(err); } });
+    document.addEventListener('DOMContentLoaded', function(){ document.body.appendChild(fixBtn); });
+    if(document.readyState === 'complete' || document.readyState === 'interactive'){ try{ document.body.appendChild(fixBtn); }catch(e){} }
+  }
+}catch(e){}
+
+// Add logging to robustModalCleanup for diagnostics
+var _origRobustModalCleanup = robustModalCleanup;
+robustModalCleanup = function(){
+  try{
+    var beforeBackdrops = document.querySelectorAll('.modal-backdrop').length;
+    var beforeShown = document.querySelectorAll('.modal.show, .modal.fallback-show').length;
+    console.log('robustModalCleanup: before backdrops=', beforeBackdrops, 'shownModals=', beforeShown);
+  }catch(e){}
+  try{ _origRobustModalCleanup(); }catch(e){ console.error(e); }
+  try{
+    var afterBackdrops = document.querySelectorAll('.modal-backdrop').length;
+    var afterShown = document.querySelectorAll('.modal.show, .modal.fallback-show').length;
+    console.log('robustModalCleanup: after backdrops=', afterBackdrops, 'shownModals=', afterShown);
+  }catch(e){}
+};
+
+// Periodic safeguard: if no modal is visible but a backdrop remains, clean it up
+var modalWatchInterval = setInterval(function(){
+  try{
+    var visibleModal = document.querySelector('.modal.show, .modal.fallback-show');
+    var backdrops = document.querySelectorAll('.modal-backdrop');
+    if(!visibleModal && backdrops.length>0){
+      robustModalCleanup();
+    }
+  }catch(e){}
+}, 500);
+
+// Expose cleanup on window for manual debugging if needed
+window._robustModalCleanup = robustModalCleanup;
+
+// Delegated close handler: force-hide the nearest modal when any dismiss control is clicked
+document.addEventListener('click', function(ev){
+  try{
+    var dismissEl = ev.target.closest && ev.target.closest('[data-bs-dismiss="modal"], .btn-close, .confirm-close, .btn-cancel');
+    if(!dismissEl) return;
+    var modalEl = dismissEl.closest && dismissEl.closest('.modal');
+    if(modalEl){
+      // Prefer using Bootstrap API when available
+      if(window.bootstrap && bootstrap.Modal){
+        try{
+          var inst = bootstrap.Modal.getInstance(modalEl);
+          if(!inst){ inst = new bootstrap.Modal(modalEl); }
+          if(inst && typeof inst.hide === 'function') inst.hide();
+        }catch(e){ /* ignore */ }
+      }
+      // ensure immediate cleanup
+      setTimeout(robustModalCleanup, 10);
+    } else {
+      // If dismiss has no modal ancestor, still run cleanup after short delay
+      setTimeout(robustModalCleanup, 10);
+    }
+  }catch(e){}
+}, true);
+
+// Capturing handler: run immediate aggressive cleanup before other handlers (helps when backdrop added by Bootstrap quickly)
+document.addEventListener('click', function(ev){
+  try{
+    var dismissEl = ev.target.closest && ev.target.closest('[data-bs-dismiss="modal"], .btn-close, .confirm-close, .btn-cancel');
+    if(!dismissEl) return;
+    // Run immediate cleanup synchronously
+    try{ robustModalCleanup(); aggressiveOverlayRemoval(); }catch(e){}
+    // also schedule a few rapid cleanups to catch late-added backdrops
+    for(var i=0;i<6;i++){ (function(i){ setTimeout(function(){ try{ robustModalCleanup(); aggressiveOverlayRemoval(); }catch(e){} }, i*40); })(i); }
+  }catch(e){}
+}, true);
+
+// Escape key: ensure cleanup when user presses Escape to close modal
+document.addEventListener('keydown', function(ev){ if(ev.key === 'Escape' || ev.key === 'Esc'){ try{ robustModalCleanup(); aggressiveOverlayRemoval(); }catch(e){} } }, true);
+</script>

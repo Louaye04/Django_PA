@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="160" viewBox="0 0 120 160">
+  <rect width="120" height="160" fill="#3b302b" rx="8"/>
+  <g fill="#bfb1a3" font-family="Arial, Helvetica, sans-serif" font-size="12">
+    <text x="12" y="40">Couverture</text>
+    <text x="12" y="60">non fournie</text>
+  </g>
+</svg>

@@ -1,0 +1,18 @@
+{% extends "Home/base_Home.html" %}
+{% load static %}
+
+{% block content %}
+<div class="card">
+  <h2>Modifier l'utilisateur: {{ target.get_full_name }} ({{ target.email }})</h2>
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-row">{{ form.first_name.label_tag }} {{ form.first_name }}</div>
+    <div class="form-row">{{ form.last_name.label_tag }} {{ form.last_name }}</div>
+    <div class="form-row">{{ form.email.label_tag }} {{ form.email }}</div>
+    <div class="form-row">{{ form.role.label_tag }} {{ form.role }}</div>
+    <div class="form-row">{{ form.password.label_tag }} {{ form.password }} <small>(laisser vide pour ne pas changer)</small></div>
+    <button type="submit" class="btn btn-primary">Enregistrer</button>
+    <a class="btn" href="{% url 'accounts:admin_dashboard' %}">Annuler</a>
+  </form>
+</div>
+{% endblock %}

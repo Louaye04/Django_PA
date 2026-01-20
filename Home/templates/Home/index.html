@@ -1,0 +1,66 @@
+{% extends "Home/base_Home.html" %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-content">
+        {% if request.user.is_authenticated %}
+            <h1>Bienvenue {{ request.user.first_name }} {{ request.user.last_name }}</h1>
+            <p>Vous êtes connecté en tant que <strong>{{ request.user.get_role_display }}</strong></p>
+            <div class="user-info-card">
+                <p><strong>Email :</strong> {{ request.user.email }}</p>
+                <p><strong>Téléphone :</strong> {{ request.user.phone|default:"Non renseigné" }}</p>
+                <p><strong>Rôle :</strong> {{ request.user.get_role_display }}</p>
+            </div>
+        {% else %}
+            <h1>Bienvenue à la Bibliothèque Universitaire</h1>
+            <p>Découvrez notre vaste collection de livres, ressources numériques et espaces d'étude</p>
+            <div class="hero-buttons">
+                <a href="{% url 'login' %}" class="btn btn-primary">Se connecter</a>
+                <!-- Inscription désactivée -->
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<section class="features">
+    <div class="feature-card">
+        <div class="feature-icon">📖</div>
+        <h3>Catalogue en ligne</h3>
+        <p>Accédez à plus de 50 000 ouvrages et ressources numériques</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon">💻</div>
+        <h3>Espaces d'étude</h3>
+        <p>Réservez des salles de travail individuelles ou en groupe</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon">🎓</div>
+        <h3>Services académiques</h3>
+        <p>Assistance à la recherche et formations documentaires</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <h3>Ressources numériques</h3>
+        <p>Accès aux bases de données et revues scientifiques</p>
+    </div>
+</section>
+
+<section class="stats">
+    <div class="stat-item">
+        <h2>50,000+</h2>
+        <p>Livres disponibles</p>
+    </div>
+    <div class="stat-item">
+        <h2>5,000+</h2>
+        <p>Étudiants inscrits</p>
+    </div>
+    <div class="stat-item">
+        <h2>200+</h2>
+        <p>Ressources en ligne</p>
+    </div>
+    <div class="stat-item">
+        <h2>24/7</h2>
+        <p>Accès numérique</p>
+    </div>
+</section>
+{% endblock %}

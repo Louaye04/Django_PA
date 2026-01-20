@@ -1,0 +1,7 @@
+<!-- Registration disabled: template archived -->
+<!-- If you need to re-enable registration, rename this file back to register.html -->
+
+{% comment %}
+Original register template archived.
+{% endcomment %}
+

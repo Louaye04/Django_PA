@@ -1,0 +1,197 @@
+{% extends "Home/base_Home.html" %}
+{% load static %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'Accounts/admin_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+  <h1>Gestion des Comptes</h1>
+  <div class="header-actions">
+    <div class="user-box">{{ request.user.get_full_name }}</div>
+    <form method="post" action="{% url 'accounts:logout' %}" style="margin-left:8px;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-logout">Déconnexion</button>
+    </form>
+  </div>
+</div>
+
+<div class="admin-main">
+  <!-- Left panel removed in favor of modal add form to match design -->
+  <aside class="left-panel">
+    <div class="card form-card">
+      <h2>Actions</h2>
+      <p>Utilisez le bouton ci-dessous pour ajouter un compte.</p>
+      <button id="openAddModal" class="create-btn">+ Ajouter un compte</button>
+    </div>
+  </aside>
+
+  <section class="right-panel">
+    <div class="card list-card">
+      <div class="tabs">
+        <form id="filterForm" method="get" style="display:flex;align-items:center;gap:8px;width:100%">
+          <input type="hidden" name="role" id="roleInput" value="{{ role }}">
+          <button type="button" class="tab" data-role="all">Tous</button>
+          <button type="button" class="tab" data-role="librarian">Bibliothécaires</button>
+          <button type="button" class="tab" data-role="teacher">Enseignants</button>
+          <button type="button" class="tab" data-role="student">Étudiants</button>
+          <div class="search" style="margin-left:auto">
+            <input type="text" name="q" placeholder="Rechercher..." value="{{ q }}">
+            <button type="submit" class="page-btn">Rechercher</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="table-wrap">
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Email</th>
+              <th>Rôle</th>
+              <th>Date d'inscription</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            <tr>
+              <td class="user-cell">{{ row.user.get_full_name }}</td>
+              <td class="email-cell">{{ row.user.email }}</td>
+              <td>{{ row.user.get_role_display }}</td>
+              <td>{{ row.user.created_at|date:"d.m.Y" }}</td>
+                <td class="actions">
+                <button type="button" class="btn btn-edit openEditBtn"
+                  data-first-name="{{ row.user.first_name }}"
+                  data-last-name="{{ row.user.last_name }}"
+                  data-email="{{ row.user.email }}"
+                  data-role="{{ row.user.role }}"
+                  data-change-url="{{ row.change_url }}">Éditer</button>
+                <form method="post" action="{{ row.delete_url }}" class="delete-form" data-user-name="{{ row.user.get_full_name }}" style="display:inline">
+                  {% csrf_token %}
+                  <button class="btn btn-delete" type="submit">Supprimer</button>
+                </form>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5">Aucun utilisateur trouvé.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}" class="page-btn">&lt;</a>
+        {% endif %}
+        <span class="page-info">{{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}</span>
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}" class="page-btn">&gt;</a>
+        {% endif %}
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<!-- Add User Modal -->
+<div id="addModal" class="modal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.4)">
+  <div class="card" style="width:420px;padding:18px;position:relative">
+    <button id="closeModal" style="position:absolute;right:10px;top:10px;background:none;border:none;font-size:20px">✕</button>
+    <h3>Ajouter un compte</h3>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-row">{{ form.first_name.label_tag }} {{ form.first_name }}</div>
+      <div class="form-row">{{ form.last_name.label_tag }} {{ form.last_name }}</div>
+      <div class="form-row">{{ form.email.label_tag }} {{ form.email }}</div>
+      <div class="form-row">{{ form.role.label_tag }} {{ form.role }}</div>
+      <div class="form-row">{{ form.password.label_tag }} {{ form.password }}</div>
+      <button type="submit" class="create-btn">Enregistrer</button>
+    </form>
+  </div>
+</div>
+
+<script>
+// Modal open/close
+document.addEventListener('DOMContentLoaded', function(){
+  const open = document.getElementById('openAddModal');
+  const modal = document.getElementById('addModal');
+  const close = document.getElementById('closeModal');
+  if(open){ open.addEventListener('click', ()=> modal.style.display='flex'); }
+  if(close){ close.addEventListener('click', ()=> modal.style.display='none'); }
+
+  // Role filter buttons
+  document.querySelectorAll('.tab[data-role]').forEach(btn => {
+    btn.addEventListener('click', function(){
+      const role = this.getAttribute('data-role');
+      document.getElementById('roleInput').value = role;
+      document.getElementById('filterForm').submit();
+    });
+  });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  document.querySelectorAll('.delete-form').forEach(function(form){
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var name = this.dataset.userName || 'cet utilisateur';
+      var ok = confirm('Voulez-vous vraiment supprimer le compte de "' + name + '" ?');
+      if(ok){ this.submit(); }
+    });
+  });
+});
+</script>
+
+<!-- Edit User Modal -->
+<div id="editModal" class="modal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.4)">
+  <div class="card" style="width:420px;padding:18px;position:relative">
+    <button id="closeEditModal" style="position:absolute;right:10px;top:10px;background:none;border:none;font-size:20px">✕</button>
+    <h3>Modifier le compte</h3>
+    <form method="post" id="editForm">
+      {% csrf_token %}
+      <div class="form-row"><label for="edit_first_name">Prénom</label><input id="edit_first_name" name="first_name" type="text"></div>
+      <div class="form-row"><label for="edit_last_name">Nom</label><input id="edit_last_name" name="last_name" type="text"></div>
+      <div class="form-row"><label for="edit_email">Email</label><input id="edit_email" name="email" type="email"></div>
+      <div class="form-row"><label for="edit_role">Rôle</label>
+        <select id="edit_role" name="role">
+          <option value="librarian">Bibliothécaire</option>
+          <option value="teacher">Enseignant</option>
+          <option value="student">Étudiant</option>
+        </select>
+      </div>
+      <div class="form-row"><label for="edit_password">Mot de passe</label><input id="edit_password" name="password" type="password"><small> Laisser vide pour ne pas changer</small></div>
+      <div style="margin-top:0.8rem;"><button type="submit" class="create-btn">Enregistrer les modifications</button></div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const editButtons = document.querySelectorAll('.openEditBtn');
+  const editModal = document.getElementById('editModal');
+  const closeEdit = document.getElementById('closeEditModal');
+  const editForm = document.getElementById('editForm');
+  const inputFirst = document.getElementById('edit_first_name');
+  const inputLast = document.getElementById('edit_last_name');
+  const inputEmail = document.getElementById('edit_email');
+  const inputRole = document.getElementById('edit_role');
+
+  editButtons.forEach(btn => {
+    btn.addEventListener('click', function(){
+      inputFirst.value = this.dataset.firstName || '';
+      inputLast.value = this.dataset.lastName || '';
+      inputEmail.value = this.dataset.email || '';
+      if(this.dataset.role){ inputRole.value = this.dataset.role; }
+      if(this.dataset.changeUrl){ editForm.action = this.dataset.changeUrl; }
+      editModal.style.display = 'flex';
+    });
+  });
+
+  if(closeEdit){ closeEdit.addEventListener('click', ()=> editModal.style.display='none'); }
+});
+</script>
+
+{% endblock %}

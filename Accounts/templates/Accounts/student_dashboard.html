@@ -1,0 +1,108 @@
+{% extends "Home/base_Home.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Home/CSS/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>Bibliothèque</h2>
+            <p class="user-role">Étudiant</p>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <a href="{% url 'student_dashboard' %}" class="nav-item active">
+                <i>🏠</i>
+                <span>Tableau de bord</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i>📚</i>
+                <span>Mes Emprunts</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i>🔖</i>
+                <span>Mes Réservations</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i>🔍</i>
+                <span>Rechercher des livres</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i>👤</i>
+                <span>Mon Profil</span>
+            </a>
+            <a href="{% url 'logout' %}" class="nav-item">
+                <i>🚪</i>
+                <span>Déconnexion</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-header">
+            <h1>Tableau de bord - Étudiant</h1>
+            <p>Bienvenue, {{ request.user.first_name }} {{ request.user.last_name }}</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon blue">📚</div>
+                <div class="stat-info">
+                    <h3>Emprunts en cours</h3>
+                    <p class="stat-number">0</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon green">✅</div>
+                <div class="stat-info">
+                    <h3>Livres rendus</h3>
+                    <p class="stat-number">0</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon orange">🔖</div>
+                <div class="stat-info">
+                    <h3>Réservations</h3>
+                    <p class="stat-number">0</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon red">⏰</div>
+                <div class="stat-info">
+                    <h3>Retards</h3>
+                    <p class="stat-number">0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="quick-actions">
+            <h2>Actions rapides</h2>
+            <div class="action-grid">
+                <a href="#" class="action-card">
+                    <i>🔍</i>
+                    <h3>Rechercher un livre</h3>
+                    <p>Explorez le catalogue</p>
+                </a>
+                <a href="#" class="action-card">
+                    <i>📚</i>
+                    <h3>Mes emprunts</h3>
+                    <p>Gérez vos livres</p>
+                </a>
+                <a href="#" class="action-card">
+                    <i>👤</i>
+                    <h3>Mon profil</h3>
+                    <p>Modifiez vos infos</p>
+                </a>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

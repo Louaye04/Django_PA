@@ -1,0 +1,105 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'Home/CSS/styles.css' %}">
+        {% block favicon %}
+        {% if page_favicon %}
+            <link rel="icon" href="{% static page_favicon %}" type="image/svg+xml">
+            <link rel="apple-touch-icon" href="{% static page_favicon %}">
+        {% else %}
+            {# Automatic favicon selection based on request.path when page_favicon not provided #}
+            {% if '/admin/' in request.path|lower %}
+                <link rel="icon" href="{% static 'Home/favicon_admin.svg' %}" type="image/svg+xml">
+                <link rel="apple-touch-icon" href="{% static 'Home/favicon_admin.svg' %}">
+            {% elif 'login' in request.path|lower or '/accounts/login' in request.path|lower %}
+                <link rel="icon" href="{% static 'Home/favicon_login.svg' %}" type="image/svg+xml">
+                <link rel="apple-touch-icon" href="{% static 'Home/favicon_login.svg' %}">
+            {% elif 'command' in request.path|lower or 'commande' in request.path|lower %}
+                <link rel="icon" href="{% static 'Home/favicon_commandes.svg' %}" type="image/svg+xml">
+                <link rel="apple-touch-icon" href="{% static 'Home/favicon_commandes.svg' %}">
+            {% elif 'emprunt' in request.path|lower or 'loan' in request.path|lower or 'borrow' in request.path|lower %}
+                <link rel="icon" href="{% static 'Home/favicon_emprunts.svg' %}" type="image/svg+xml">
+                <link rel="apple-touch-icon" href="{% static 'Home/favicon_emprunts.svg' %}">
+            {% elif 'librarian' in request.path|lower or 'librarian/books' in request.path|lower %}
+                <link rel="icon" href="{% static 'Home/favicon_catalogue.svg' %}" type="image/svg+xml">
+                <link rel="apple-touch-icon" href="{% static 'Home/favicon_catalogue.svg' %}">
+            {% else %}
+                <link rel="icon" href="{% static 'Home/library_logo.svg' %}" type="image/svg+xml">
+                <link rel="apple-touch-icon" href="{% static 'Home/library_logo.svg' %}">
+            {% endif %}
+        {% endif %}
+        {% endblock %}
+    {% block extra_css %}{% endblock %}
+    {% block title %}
+        {% if page_title %}
+            <title>{{ page_title }}</title>
+        {% else %}
+            {% if '/admin/' in request.path|lower %}
+                <title>📚 Interface Admin — Bibliothèque Universitaire</title>
+            {% elif 'login' in request.path|lower or '/accounts/login' in request.path|lower %}
+                <title>📚 Connexion — Bibliothèque Universitaire</title>
+            {% elif 'command' in request.path|lower or 'commande' in request.path|lower %}
+                <title>📚 Commandes des adhérents — Bibliothèque Universitaire</title>
+            {% elif 'emprunt' in request.path|lower or 'loan' in request.path|lower or 'borrow' in request.path|lower %}
+                <title>📚 Emprunts des adhérents — Bibliothèque Universitaire</title>
+            {% elif 'librarian' in request.path|lower or 'librarian/books' in request.path|lower or 'library_manage' in request.path|lower %}
+                <title>📚 Catalogue (Bibliothécaire) — Bibliothèque Universitaire</title>
+            {% else %}
+                <title>📚 Bibliothèque Universitaire</title>
+            {% endif %}
+        {% endif %}
+    {% endblock %}
+        <script>
+            // Force favicon on client side to avoid cache issues and ensure per-page icon
+            (function(){
+                try{
+                    var chosen = null;
+                    {% if page_favicon %}
+                        chosen = "{% static page_favicon %}";
+                    {% else %}
+                        {% if '/admin/' in request.path|lower %}
+                            chosen = "{% static 'Home/favicon_admin.svg' %}";
+                        {% elif 'login' in request.path|lower or '/accounts/login' in request.path|lower %}
+                            chosen = "{% static 'Home/favicon_login.svg' %}";
+                        {% elif 'command' in request.path|lower or 'commande' in request.path|lower %}
+                            chosen = "{% static 'Home/favicon_commandes.svg' %}";
+                        {% elif 'emprunt' in request.path|lower or 'loan' in request.path|lower or 'borrow' in request.path|lower %}
+                            chosen = "{% static 'Home/favicon_emprunts.svg' %}";
+                        {% elif 'librarian' in request.path|lower or 'librarian/books' in request.path|lower %}
+                            chosen = "{% static 'Home/favicon_catalogue.svg' %}";
+                        {% else %}
+                            chosen = "{% static 'Home/library_logo.svg' %}";
+                        {% endif %}
+                    {% endif %}
+                    if(chosen){
+                        try{
+                            // remove existing icon links
+                            var existing = Array.prototype.slice.call(document.querySelectorAll('link[rel*="icon"], link[rel="shortcut icon"]'));
+                            existing.forEach(function(n){ n.parentNode.removeChild(n); });
+                        }catch(e){}
+                        var head = document.getElementsByTagName('head')[0] || document.documentElement;
+                        var cb = '?v=' + Date.now();
+                        // create svg icon link
+                        var l1 = document.createElement('link'); l1.rel = 'icon'; l1.type = 'image/svg+xml'; l1.href = chosen + cb; head.appendChild(l1);
+                        // create shortcut icon rel for legacy browsers
+                        var l2 = document.createElement('link'); l2.rel = 'shortcut icon'; l2.href = chosen + cb; head.appendChild(l2);
+                        // also add an png rel (some browsers prefer) pointing to same url (may fallback)
+                        var l3 = document.createElement('link'); l3.rel = 'icon'; l3.type = 'image/png'; l3.href = chosen + cb; head.appendChild(l3);
+                    }
+                }catch(e){ console.error('favicon script error', e); }
+            })();
+        </script>
+</head>
+<body>
+<!-- En-tête supprimé sur demande -->
+
+<main>
+    {% block content %}{% endblock %}
+</main>
+
+</body>
+</body>
+</html>

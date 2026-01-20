@@ -1,0 +1,100 @@
+{% load static %}
+<!-- Partial: modal vintage pour ajouter un livre -->
+<link rel="stylesheet" href="{% static 'Home/CSS/modal_vintage.css' %}">
+
+<div class="modal fade vintage-modal" id="addBookVintageModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered custom-size">
+    <div class="modal-content custom-size">
+      <div class="modal-header">
+        <h5 class="modal-title">Ajouter un livre</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+
+      <form id="addBookForm" method="post" action="{{ request.path }}" enctype="multipart/form-data" class="needs-validation" novalidate>
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="id_title" class="form-label">Titre</label>
+              {{ form.title }}
+            </div>
+            <div class="col-md-6">
+              <label for="id_author" class="form-label">Auteur</label>
+              {{ form.author }}
+            </div>
+            <div class="col-md-6">
+              <label for="id_genre" class="form-label">Genre</label>
+              {{ form.genre }}
+            </div>
+            <div class="col-md-6">
+              <label for="id_availability" class="form-label">Disponibilité</label>
+              {{ form.availability }}
+            </div>
+            <div class="col-md-6">
+              <label for="id_quantity" class="form-label">Quantité</label>
+              {{ form.quantity }}
+            </div>
+            <div class="col-12">
+              <label for="id_description" class="form-label">Description</label>
+              {{ form.description }}
+            </div>
+            <div class="col-12">
+              <label for="id_cover" class="form-label">Couverture (image)</label>
+              <div class="edit-cover-block">
+                <div class="cover-preview" style="display:flex;align-items:center;gap:12px">
+                  <div class="cover-placeholder cover-preview-large">Aperçu</div>
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <div class="cover-filename" id="coverFilename">Aucun fichier choisi</div>
+                    <input type="file" name="cover" id="id_cover" class="file-input-hidden">
+                    <button type="button" class="btn-change-img" id="changeCoverBtn">Charger l'image</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" id="addBookSubmit" class="btn btn-success">Ajouter</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+// small helper to forward "Charger l'image" to the hidden file input
+document.addEventListener('DOMContentLoaded', function(){
+  // cover input helper
+  var changeBtn = document.getElementById('changeCoverBtn');
+  var fileInput = document.getElementById('id_cover');
+  var filename = document.getElementById('coverFilename');
+  if(changeBtn && fileInput){
+    changeBtn.addEventListener('click', function(){ fileInput.click(); });
+    fileInput.addEventListener('change', function(){ filename.textContent = fileInput.files && fileInput.files.length ? fileInput.files[0].name : 'Aucun fichier choisi'; });
+  }
+
+  // ensure the add modal opens reliably using Bootstrap API or fallback
+  var trigger = document.querySelector('[data-bs-target="#addBookVintageModal"]');
+  var modalEl = document.getElementById('addBookVintageModal');
+  if(trigger && modalEl){
+    trigger.addEventListener('click', function(e){
+      try{ if(e && e.preventDefault) e.preventDefault(); }catch(_){}
+      if(window.bootstrap && bootstrap.Modal){
+        try{ new bootstrap.Modal(modalEl).show(); return; }catch(err){}
+      }
+      // fallback manual show
+      modalEl.classList.add('fallback-show');
+      modalEl.removeAttribute('aria-hidden');
+      var backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop fallback';
+      backdrop.style.position = 'fixed'; backdrop.style.inset = '0'; backdrop.style.background = 'rgba(0,0,0,0.6)'; backdrop.style.zIndex = '1050';
+      document.body.appendChild(backdrop);
+      document.body.style.overflow = 'hidden';
+      modalEl.querySelectorAll('[data-bs-dismiss="modal"]').forEach(function(btn){ btn.addEventListener('click', function(){ modalEl.classList.remove('fallback-show'); backdrop.remove(); modalEl.setAttribute('aria-hidden','true'); document.body.style.overflow = ''; }); });
+      backdrop.addEventListener('click', function(){ modalEl.classList.remove('fallback-show'); backdrop.remove(); modalEl.setAttribute('aria-hidden','true'); document.body.style.overflow = ''; });
+    });
+  }
+});
+</script>

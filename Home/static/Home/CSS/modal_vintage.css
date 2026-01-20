@@ -1,0 +1,39 @@
+/* Vintage modal style inspired by the provided mockup */
+:root{--v-bg1:#4b362e;--v-bg2:#2f241d;--v-accent:#efe2d6;--v-btn:#6b8b5b}
+/* Dialog width to match mockup; increased to match the provided reference image */
+.vintage-modal .modal-dialog{max-width:980px;margin:2rem auto}
+.vintage-modal .modal-content{
+  background: linear-gradient(180deg,var(--v-bg1),var(--v-bg2));
+  color:var(--v-accent);
+  border-radius:12px;
+  padding:0;
+  box-shadow:0 30px 90px rgba(0,0,0,0.7);
+  border:6px solid rgba(0,0,0,0.18);
+  background-image: radial-gradient(rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.vintage-modal .modal-header{padding:18px 22px;border-bottom:1px solid rgba(255,255,255,0.04);align-items:center}
+.vintage-modal .modal-title{font-family: 'Georgia', serif;font-weight:700;font-size:1.45rem;color:var(--v-accent)}
+.vintage-modal .btn-close{filter:drop-shadow(0 2px 3px rgba(0,0,0,0.6));}
+.vintage-modal .modal-body{padding:20px 22px;max-height:74vh;overflow:auto}
+.vintage-modal .form-label{color:var(--v-accent);font-weight:600;margin-bottom:6px}
+.vintage-modal .form-control, .vintage-modal .form-select, .vintage-modal textarea{
+  background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.03);color:var(--v-accent);border-radius:6px;padding:10px}
+.vintage-modal .cover-preview-large{width:140px;height:200px;object-fit:cover;border-radius:6px;box-shadow:0 8px 22px rgba(0,0,0,0.6)}
+.vintage-modal .cover-placeholder{width:140px;height:200px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.12);color:var(--v-accent);border-radius:6px}
+.vintage-modal .edit-cover-block{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.vintage-modal .cover-filename{font-size:0.95rem;color:var(--v-accent);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vintage-modal .btn-change-img{background:#6c4f3d;border-color:#6c4f3d;color:var(--v-accent);padding:.45rem .9rem;border-radius:8px}
+.vintage-modal .modal-footer{padding:14px 18px;border-top:1px solid rgba(255,255,255,0.03);display:flex;justify-content:flex-end;gap:10px}
+.vintage-modal .btn-secondary{background:#5f534d;color:var(--v-accent);border:1px solid rgba(255,255,255,0.03);padding:.6rem 1.1rem;border-radius:8px}
+.vintage-modal .btn-success{background:linear-gradient(180deg,#5a8b5a,#3f6b3f);color:#fff;padding:.6rem 1.2rem;border-radius:8px;border:none}
+
+/* Explicit dimension to match mockup closely */
+.vintage-modal .modal-dialog.custom-size{max-width:760px}
+.vintage-modal .modal-content.custom-size{min-height:720px;max-width:940px}
+
+/* small screens adjustments */
+@media (max-width:900px){
+  .vintage-modal .modal-dialog{max-width:92vw}
+  .vintage-modal .modal-content{min-height:auto}
+}

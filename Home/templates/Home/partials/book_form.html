@@ -1,0 +1,53 @@
+{% load static %}
+<form method="post" enctype="multipart/form-data" id="bookEditForm" class="needs-validation" novalidate>
+  {% csrf_token %}
+  <div class="modal-body">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label for="id_title" class="form-label">Titre</label>
+        {{ form.title }}
+      </div>
+      <div class="col-md-6">
+        <label for="id_author" class="form-label">Auteur</label>
+        {{ form.author }}
+      </div>
+      <div class="col-md-6">
+        <label for="id_genre" class="form-label">Genre</label>
+        {{ form.genre }}
+      </div>
+      <div class="col-md-6">
+        <label for="id_availability" class="form-label">Disponibilité</label>
+        {{ form.availability }}
+      </div>
+      <div class="col-md-6">
+        <label for="id_quantity" class="form-label">Quantité</label>
+        {{ form.quantity }}
+      </div>
+      <div class="col-12">
+        <label for="id_description" class="form-label">Description</label>
+        {{ form.description }}
+      </div>
+      <div class="col-12">
+        <label for="id_cover" class="form-label">Couverture (image)</label>
+        <div class="edit-cover-block">
+          <div class="cover-preview">
+            {% if book and book.cover %}
+              <img src="{{ book.cover.url }}" alt="{{ book.title }}" class="cover-preview-large">
+            {% else %}
+              <div class="cover-placeholder cover-preview-large">Aperçu</div>
+            {% endif %}
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div class="cover-filename" id="coverFilename">{% if book and book.cover %}{{ book.cover.name }}{% else %}Aucun fichier choisi{% endif %}</div>
+              <input type="file" name="cover" id="id_cover" class="file-input-hidden">
+              <button type="button" class="btn btn-change-img" id="changeCoverBtn">Charger l'image</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" id="partialCancel" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+    <button type="submit" id="partialSubmit" class="btn btn-success">{% if book %}Enregistrer{% else %}Ajouter{% endif %}</button>
+  </div>
+</form>
