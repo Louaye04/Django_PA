@@ -8,15 +8,6 @@
     }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "University_Platform/wsgi.py" }
-  ]
-}
-{
-  "version": 2,
-  "builds": [
-    { "src": "Dockerfile", "use": "@vercel/docker" }
-  ],
-  "routes": [
-    { "src": "/(.*)", "dest": "/" }
+    { "src": "\\/(.*)", "dest": "University_Platform/wsgi.py" }
   ]
 }
