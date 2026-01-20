@@ -1,6 +1,19 @@
 {
   "version": 2,
   "builds": [
+    {
+      "src": "University_Platform/wsgi.py",
+      "use": "@vercel/python",
+      "config": { "maxLambdaSize": "50mb", "runtime": "python3.12" }
+    }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "University_Platform/wsgi.py" }
+  ]
+}
+{
+  "version": 2,
+  "builds": [
     { "src": "Dockerfile", "use": "@vercel/docker" }
   ],
   "routes": [

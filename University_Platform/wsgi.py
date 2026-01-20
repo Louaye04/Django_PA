@@ -14,3 +14,5 @@ from django.core.wsgi import get_wsgi_application
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'University_Platform.settings')
 
 application = get_wsgi_application()
+# Expose the callable as `app` for some Wercel builders
+app = application
